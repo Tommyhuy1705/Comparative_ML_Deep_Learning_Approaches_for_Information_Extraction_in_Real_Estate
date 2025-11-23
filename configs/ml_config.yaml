@@ -1,0 +1,51 @@
+# CRF (Conditional Random Field) Parameters
+crf:
+  algorithm: 'lbfgs'  # lbfgs, l2sgd, ap, pa, arow
+  max_iterations: 100
+  all_possible_transitions: true
+  
+  # Regularization
+  l1_coefficient: 0.1
+  l2_coefficient: 0.1
+  
+  # Feature parameters
+  window_size: 3  # Context window for feature extraction
+  use_transitions: true
+
+# SVM (Support Vector Machine) Parameters
+svm:
+  kernel: 'rbf'  # linear, rbf, poly, sigmoid
+  C: 1.0  # Regularization parameter
+  gamma: 'scale'  # auto, scale
+  probability: true
+  class_weight: 'balanced'
+
+# Feature Engineering
+features:
+  use_pos_tags: true
+  use_word_embeddings: false
+  embedding_dim: 100
+  word_embedding_type: 'word2vec'  # word2vec, glove, fasttext
+  
+  # Hand-crafted features
+  use_capitalization: true
+  use_digit_features: true
+  use_suffix_prefix: true
+
+# Data Processing
+preprocessing:
+  min_token_frequency: 2
+  max_vocab_size: 50000
+  lowercase: false
+  remove_special_chars: false
+
+# Training
+training:
+  train_test_split: 0.8
+  validation_split: 0.1
+  random_seed: 42
+  
+# Evaluation
+evaluation:
+  metrics: ['precision', 'recall', 'f1', 'accuracy']
+  report_digits: 4

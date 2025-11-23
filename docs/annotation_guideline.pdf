@@ -1,0 +1,155 @@
+# Annotation Guidelines for Real Estate Information Extraction
+
+## Overview
+
+This document provides guidelines for annotating real estate listings for the comparative study of ML/DL approaches.
+
+## Entity Types
+
+### 1. **PRICE** (Giá)
+- **Definition**: Monetary value of the property
+- **Format**: Currency + amount (e.g., "$250,000", "500 triệu VNĐ")
+- **Examples**:
+  - "$250,000"
+  - "500 triệu đồng"
+  - "€150,000"
+  
+### 2. **AREA** (Diện tích)
+- **Definition**: Total area of the property
+- **Format**: Number + unit (m², sq ft, etc.)
+- **Examples**:
+  - "2,500 m²"
+  - "150 sq ft"
+  - "100m2"
+
+### 3. **LOCATION** (Vị trí)
+- **Definition**: Geographic location/address
+- **Format**: District, city, street names
+- **Examples**:
+  - "Downtown Manhattan"
+  - "Quận 1, TP.HCM"
+  - "123 Main Street"
+
+### 4. **PROPERTY_TYPE** (Loại bất động sản)
+- **Definition**: Type of property
+- **Examples**:
+  - "Apartment"
+  - "House"
+  - "Commercial space"
+  - "Townhouse"
+
+### 5. **BEDROOMS** (Phòng ngủ)
+- **Definition**: Number of bedrooms
+- **Format**: Number
+- **Examples**:
+  - "3 bedrooms"
+  - "4 BR"
+  - "5"
+
+### 6. **BATHROOMS** (Phòng tắm)
+- **Definition**: Number of bathrooms
+- **Format**: Number
+- **Examples**:
+  - "2 bathrooms"
+  - "3 BA"
+  - "2"
+
+## Annotation Guidelines
+
+### Rules
+
+1. **Boundary Determination**
+   - Include only the entity itself
+   - Do not include surrounding context
+   - Example: "in **$250,000** area" → annotate only "$250,000"
+
+2. **Overlapping Entities**
+   - Do not create overlapping annotations
+   - Assign to the most specific entity type
+
+3. **Ambiguous Cases**
+   - When uncertain, do not annotate
+   - Document unclear examples
+
+### Examples
+
+**Example 1:**
+```
+Text: "Spacious 3-bedroom apartment in downtown Manhattan, 2,500 sq ft, $250,000"
+
+Annotations:
+- PROPERTY_TYPE: apartment
+- BEDROOMS: 3
+- LOCATION: downtown Manhattan
+- AREA: 2,500 sq ft
+- PRICE: $250,000
+```
+
+**Example 2:**
+```
+Text: "Chung cư 2 phòng ngủ, 80m2, quận 1, TP.HCM, giá 3 tỷ đồng"
+
+Annotations:
+- PROPERTY_TYPE: Chung cư
+- BEDROOMS: 2
+- AREA: 80m2
+- LOCATION: quận 1, TP.HCM
+- PRICE: 3 tỷ đồng
+```
+
+## Quality Control
+
+### Validation Checklist
+- [ ] All entities are properly bounded
+- [ ] Entity types are correctly assigned
+- [ ] No overlapping annotations
+- [ ] Consistent formatting
+- [ ] At least 80% entity coverage
+
+### Common Mistakes to Avoid
+1. Including extra words (e.g., "the **$250,000 price**" instead of "**$250,000**")
+2. Missing entities (especially prices and locations)
+3. Misclassifying entity types
+4. Inconsistent capitalization
+
+## Format
+
+### CoNLL Format
+```
+word1 PRICE
+word2 O
+word3 LOCATION
+word4 LOCATION
+```
+
+### JSON Format
+```json
+[
+  {
+    "text": "Sample text",
+    "labels": ["O", "PRICE", "O", "LOCATION"]
+  }
+]
+```
+
+## Statistics
+
+Target annotations:
+- Minimum 1,000 documents
+- Minimum 10,000 entities
+- Balanced label distribution (if possible)
+- Quality: >95% agreement between annotators (Cohen's Kappa)
+
+## Tools
+
+Recommended annotation tools:
+- **Prodigy** (paid, easy-to-use)
+- **Doccano** (open-source, web-based)
+- **Tagtog** (web-based annotation platform)
+- **Label Studio** (open-source, flexible)
+
+## Questions?
+
+Contact: [annotation coordinator email/contact]
+
+---
