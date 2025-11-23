@@ -27,14 +27,14 @@ pip install -r requirements.txt
 ## Project Structure
 
 ```
-├── .gitignore <-- Ignore: venv, pycache, .DS_Store, *.pth, data/
-├── README.md <-- Overview, Installation, How to run UI
-├── requirements.txt <-- Dependencies (streamlit, transformers, sklearn-crfsuite, etc.)
-├── main.py <-- CLI Entry point
+├── .gitignore
+├── README.md
+├── requirements.txt
+├── main.py
 │
 ├── configs/
-│ ├── ml_config.yaml <-- Params: Window size, L1/L2 reg for CRF, C for SVM
-│ └── dl_config.yaml <-- Params: Model ID (PhoBERT), LR, Epochs, Max_len
+│ ├── ml_config.yaml
+│ └── dl_config.yaml
 │
 ├── data/
 │ ├── 01_raw/
@@ -43,7 +43,7 @@ pip install -r requirements.txt
 │ └── 04_model_input/
 │
 ├── docs/
-│ └── annotation_guideline.pdf <-- Create an empty placeholder file
+│ └── annotation_guideline.pdf
 │
 ├── notebooks/
 │ ├── 01_EDA_Data_Analysis.ipynb
@@ -86,9 +86,7 @@ pip install -r requirements.txt
 
 ### CLI
 ```bash
-python main.py train --model both
-python main.py evaluate --model both --checkpoint outputs/checkpoints/best.pth
-python main.py predict --model dl --checkpoint model.pth --input test.txt
+
 ```
 
 ### Web UI
@@ -113,7 +111,7 @@ jupyter notebook notebooks/
 - **mBERT** - Multilingual BERT
 - **XLM-R** - Cross-lingual RoBERTa
 
-## 📊 Performance Results
+## Performance Results
 
 
 
