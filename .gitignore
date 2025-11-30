@@ -32,7 +32,7 @@ wheels/
 .DS_Store
 
 # Data and Models
-data/
+#data/
 *.pth
 *.pt
 *.pkl
