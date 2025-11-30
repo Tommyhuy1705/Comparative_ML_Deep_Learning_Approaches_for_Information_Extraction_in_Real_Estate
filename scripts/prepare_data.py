@@ -16,26 +16,19 @@ def process_pipeline():
         try:
             print(f"-> Đang xử lý: {f} ...")
             df = pd.read_csv(f)
-            
             df.columns = [c.lower() for c in df.columns]
             
             if 'content' not in df.columns:
                 print(f"   [SKIP] File {f} không có cột 'content'.")
                 continue
-            
-            # Tạo DataFrame tạm
+
             temp_df = pd.DataFrame()
-            
-            # Xử lý Title (nếu có)
             if 'title' in df.columns:
                 temp_df['title'] = df['title'].fillna("No Title").apply(clean_title)
             else:
                 temp_df['title'] = "No Title"
-                
-            # Xử lý Content (Dùng hàm từ src/data_loader/preprocess.py)
+
             temp_df['content'] = df['content'].apply(clean_and_format_content)
-            
-            # Bỏ dòng trống
             temp_df = temp_df[temp_df['content'].str.strip() != ""]
             
             all_data.append(temp_df)
@@ -43,10 +36,8 @@ def process_pipeline():
         except Exception as e:
             print(f"   [ERROR] Lỗi file {f}: {e}")
 
-    # 2. Gộp và đánh ID
     if all_data:
         final_df = pd.concat(all_data, ignore_index=True)
-        # Tạo ID tự tăng
         final_df.insert(0, 'id', range(1, len(final_df) + 1))
         
         # 3. Lưu file
@@ -62,8 +53,7 @@ if __name__ == "__main__":
     df = pd.read_csv('data/02_intermediate/official_bds_data.csv')
     df.drop_duplicates(subset=['content'], inplace=True)
 
-    # Lưu file chốt
     df.to_csv('data/02_intermediate/final_dataset_ready_for_labeling.csv', index=False, encoding='utf-8-sig')
-    print("✅ Đã xử lý xong! File sẵn sàng để gán nhãn nằm ở: data/02_intermediate/final_dataset_ready_for_labeling.csv")
+    print("Đã xử lý xong! File sẵn sàng để gán nhãn nằm ở: data/02_intermediate/final_dataset_ready_for_labeling.csv")
 
 
