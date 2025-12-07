@@ -1,59 +1,95 @@
 import pandas as pd
 import os
+import sys
+import json
 import re
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+project_root = os.path.dirname(current_dir)
+sys.path.append(project_root)
+
 from src.data_loader.preprocess import clean_and_format_content, clean_title
 
-RAW_DATA_DIR = "data/01_raw"
-OUTPUT_FILE = "data/02_intermediate/official_bds_data.csv"
+# ==============================================================================
+# CẤU HÌNH ĐƯỜNG DẪN
+# ==============================================================================
+RAW_DATA_DIR = os.path.join(project_root, "data/01_raw")
+INPUT_FILE_NAME = "BDS_Mien_Trung_Cleaned.xlsx"
+
+OUTPUT_DIR = os.path.join(project_root, "data/02_intermediate")
+OUTPUT_JSON = os.path.join(OUTPUT_DIR, "official_dataset_mien_trung.json")
 
 def process_pipeline():
-    files = [os.path.join(RAW_DATA_DIR, f) for f in os.listdir(RAW_DATA_DIR) if f.endswith(".csv")]
+    input_path = os.path.join(RAW_DATA_DIR, INPUT_FILE_NAME)
+    
+    if not os.path.exists(input_path):
+        # Thử fallback sang CSV
+        input_path_csv = input_path.replace(".xlsx", ".csv")
+        if os.path.exists(input_path_csv):
+            input_path = input_path_csv
+        else:
+            print(f"Lỗi: Không tìm thấy file input '{INPUT_FILE_NAME}' hoặc bản .csv của nó trong '{RAW_DATA_DIR}'")
+            return
 
-    print(f" Tìm thấy {len(files)} file dữ liệu thô: {files}")
+    # 2. Đọc dữ liệu
+    print(f"-> Đang đọc file: {input_path} ...")
+    try:
+        if input_path.endswith(".xlsx"):
+            df = pd.read_excel(input_path)
+        else:
+            df = pd.read_csv(input_path)
+    except Exception as e:
+        print(f"Lỗi khi đọc file: {e}")
+        return
 
-    all_data = []
-    for f in files:
-        try:
-            print(f"-> Đang xử lý: {f} ...")
-            df = pd.read_csv(f)
-            df.columns = [c.lower() for c in df.columns]
-            
-            if 'content' not in df.columns:
-                print(f"   [SKIP] File {f} không có cột 'content'.")
-                continue
+    # Chuẩn hóa tên cột
+    df.columns = [c.lower() for c in df.columns]
+    
+    if 'content' not in df.columns:
+        print("Lỗi: File không có cột 'content'.")
+        return
 
-            temp_df = pd.DataFrame()
-            if 'title' in df.columns:
-                temp_df['title'] = df['title'].fillna("No Title").apply(clean_title)
-            else:
-                temp_df['title'] = "No Title"
+    total_rows = len(df)
+    print(f"Tổng số dòng trong file gốc: {total_rows}")
+    json_output = []
+    valid_content_count = 0
 
-            temp_df['content'] = df['content'].apply(clean_and_format_content)
-            temp_df = temp_df[temp_df['content'].str.strip() != ""]
-            
-            all_data.append(temp_df)
-            
-        except Exception as e:
-            print(f"   [ERROR] Lỗi file {f}: {e}")
-
-    if all_data:
-        final_df = pd.concat(all_data, ignore_index=True)
-        final_df.insert(0, 'id', range(1, len(final_df) + 1))
+    print(f"-> Đang xử lý dữ liệu...")
+    
+    for index, row in df.iterrows():
+        raw_content = str(row['content'])
         
-        # 3. Lưu file
-        os.makedirs(os.path.dirname(OUTPUT_FILE), exist_ok=True)
-        final_df.to_csv(OUTPUT_FILE, index=False, encoding='utf-8-sig')
-        print(f"\n XONG! Đã lưu {len(final_df)} dòng vào: {OUTPUT_FILE}")
-        print("Cấu trúc file:", final_df.columns.tolist())
-    else:
-        print("\n Không có dữ liệu nào được xử lý.")
+        if not raw_content or raw_content.lower() == 'nan': continue
+        
+        cleaned_text = clean_and_format_content(raw_content)
+        one_block_text = re.sub(r'[\n\r]+', ' ', cleaned_text)
+        
+        one_block_text = re.sub(r'\s+', ' ', one_block_text).strip()
+        
+        if len(one_block_text) > 20:
+            item = {
+                "text": one_block_text
+            }
+            json_output.append(item)
+
+    # 4. Lưu file JSON kết quả
+    os.makedirs(OUTPUT_DIR, exist_ok=True)
+    
+    with open(OUTPUT_JSON, 'w', encoding='utf-8') as f:
+        json.dump(json_output, f, ensure_ascii=False, indent=4)
+
+    final_count = len(json_output)
+    
+    print("\n" + "="*40)
+    print("HOÀN TẤT QUÁ TRÌNH XỬ LÝ")
+    print("="*40)
+    print(f"1. Tổng số dòng dữ liệu (Raw):   {total_rows:,}")
+    print(f"2. Số dòng có nội dung (Valid):  {valid_content_count:,}")
+    print(f"3. Số lượng Text kết quả (Final): {final_count:,}")
+    print("-" * 40)
+    print(f"Đã loại bỏ: {valid_content_count - final_count} bài (do quá ngắn hoặc lỗi)")
+    print(f"File output: {OUTPUT_JSON}")
+    print("="*40 + "\n")
 
 if __name__ == "__main__":
     process_pipeline()
-    df = pd.read_csv('data/02_intermediate/official_bds_data.csv')
-    df.drop_duplicates(subset=['content'], inplace=True)
-
-    df.to_csv('data/02_intermediate/final_dataset_ready_for_labeling.csv', index=False, encoding='utf-8-sig')
-    print("Đã xử lý xong! File sẵn sàng để gán nhãn nằm ở: data/02_intermediate/final_dataset_ready_for_labeling.csv")
-
-
