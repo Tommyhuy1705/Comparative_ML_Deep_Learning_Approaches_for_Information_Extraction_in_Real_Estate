@@ -14,10 +14,10 @@ from src.data_loader.preprocess import clean_and_format_content, clean_title
 # CẤU HÌNH ĐƯỜNG DẪN
 # ==============================================================================
 RAW_DATA_DIR = os.path.join(project_root, "data/01_raw")
-INPUT_FILE_NAME = "BDS_Mien Nam_cleaned.csv"
+INPUT_FILE_NAME = "[NLP] BDS - clean - Detail_true - Bổ sung.csv"
 
 OUTPUT_DIR = os.path.join(project_root, "data/02_intermediate")
-OUTPUT_JSON = os.path.join(OUTPUT_DIR, "official_dataset_mien_nam.json")
+OUTPUT_JSON = os.path.join(OUTPUT_DIR, "extended_dataset_mien_nam.json")
 
 def process_pipeline():
     input_path = os.path.join(RAW_DATA_DIR, INPUT_FILE_NAME)
