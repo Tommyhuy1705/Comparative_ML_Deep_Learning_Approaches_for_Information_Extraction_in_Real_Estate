@@ -90,6 +90,53 @@ def process_pipeline():
     print(f"Đã loại bỏ: {valid_content_count - final_count} bài (do quá ngắn hoặc lỗi)")
     print(f"File output: {OUTPUT_JSON}")
     print("="*40 + "\n")
+    
+def merge_labeled_datasets(input_files, output_file):
+    print(f"\n Đang gộp {len(input_files)} file dataset...")
+    
+    merged_data = []
+    current_id = 1
+    
+    for file_path in input_files:
+        if not os.path.exists(file_path):
+            print(f"Cảnh báo: Không tìm thấy file {file_path}")
+            continue
+            
+        print(f"   -> Đọc file: {os.path.basename(file_path)}")
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+                
+            # Duyệt qua từng task trong file
+            for task in data:
+                # 1. Reset ID của Task (quan trọng để không bị trùng)
+                task['id'] = current_id
+                
+                # (Tùy chọn) Nếu muốn lưu lại tên file gốc vào meta
+                if 'meta' not in task: task['meta'] = {}
+                task['meta']['source_file'] = os.path.basename(file_path)
+                
+                merged_data.append(task)
+                current_id += 1
+                
+        except Exception as e:
+            print(f"Lỗi khi đọc file {file_path}: {e}")
+
+    # Lưu file tổng
+    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    with open(output_file, 'w', encoding='utf-8') as f:
+        json.dump(merged_data, f, ensure_ascii=False, indent=4)
+        
+    print(f"Đã gộp xong! Tổng cộng: {len(merged_data)} bài đăng.")
+    print(f"File kết quả: {output_file}")
 
 if __name__ == "__main__":
-    process_pipeline()
+    # process_pipeline()
+    files_to_merge = [
+        "data/03_primary/label_data_mien_trung.json",
+        "data/03_primary/label_data_mien_tay.json",
+        "data/03_primary/label_data_mien_nam.json",
+        "data/03_primary/label_data_mien bac.json"
+    ]
+    output_master = "data/03_primary/final_labeled_dataset.json"
+    merge_labeled_datasets(files_to_merge, output_master)
