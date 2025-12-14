@@ -4,15 +4,13 @@ import sys
 import json
 import re
 
+from sklearn.model_selection import train_test_split
 current_dir = os.path.dirname(os.path.abspath(__file__))
 project_root = os.path.dirname(current_dir)
 sys.path.append(project_root)
 
 from src.data_loader.preprocess import clean_and_format_content, clean_title
 
-# ==============================================================================
-# CẤU HÌNH ĐƯỜNG DẪN
-# ==============================================================================
 RAW_DATA_DIR = os.path.join(project_root, "data/01_raw")
 INPUT_FILE_NAME = "BDS_Mien_Trung_Cleaned.xlsx"
 
@@ -130,6 +128,37 @@ def merge_labeled_datasets(input_files, output_file):
     print(f"Đã gộp xong! Tổng cộng: {len(merged_data)} bài đăng.")
     print(f"File kết quả: {output_file}")
 
+def split_dataset(input_file, train_file, test_file, dev_file, test_size=0.2, dev_size=0.1, random_state=42):
+    print(f"\n Đang chia dữ liệu từ file: {input_file}")
+    
+    if not os.path.exists(input_file):
+        print(f"Lỗi: Không tìm thấy file {input_file}")
+        return
+    
+    with open(input_file, 'r', encoding='utf-8') as f:
+        data = json.load(f)
+    
+    train_data, temp_data = train_test_split(data, test_size=(test_size + dev_size), random_state=random_state)
+    relative_dev_size = dev_size / (test_size + dev_size)
+    dev_data, test_data = train_test_split(temp_data, test_size=relative_dev_size, random_state=random_state)
+    
+    # Lưu các file kết quả
+    os.makedirs(os.path.dirname(train_file), exist_ok=True)
+    
+    with open(train_file, 'w', encoding='utf-8') as f:
+        json.dump(train_data, f, ensure_ascii=False, indent=4)
+        
+    with open(dev_file, 'w', encoding='utf-8') as f:
+        json.dump(dev_data, f, ensure_ascii=False, indent=4)
+        
+    with open(test_file, 'w', encoding='utf-8') as f:
+        json.dump(test_data, f, ensure_ascii=False, indent=4)
+        
+    print(f"Chia dữ liệu xong:")
+    print(f" - Train: {len(train_data)} bài -> {train_file}")
+    print(f" - Dev:   {len(dev_data)} bài -> {dev_file}")
+    print(f" - Test:  {len(test_data)} bài -> {test_file}")
+
 if __name__ == "__main__":
     # process_pipeline()
     files_to_merge = [
@@ -139,4 +168,11 @@ if __name__ == "__main__":
         "data/03_primary/label_data_mien bac.json"
     ]
     output_master = "data/03_primary/final_labeled_dataset.json"
-    merge_labeled_datasets(files_to_merge, output_master)
+    #merge_labeled_datasets(files_to_merge, output_master)
+
+    input_file = "data/03_primary/final_labeled_dataset.json"
+    train_file = "data/04_model_input/train_dataset.json"
+    test_file = "data/04_model_input/test_dataset.json"
+    dev_file = "data/04_model_input/dev_dataset.json"
+
+    split_dataset(input_file, train_file, test_file, dev_file, test_size=0.2, dev_size=0.1, random_state=42)
