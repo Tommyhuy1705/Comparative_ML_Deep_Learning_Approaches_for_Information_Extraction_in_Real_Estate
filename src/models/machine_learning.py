@@ -16,7 +16,6 @@ class CRFModel:
         )
 
     def train(self, X_train, y_train):
-        # CRF nhận input trực tiếp là List of List of Dicts
         self.model.fit(X_train, y_train)
 
     def predict(self, X_test):
@@ -28,13 +27,11 @@ class CRFModel:
     def load(self, path):
         self.model = joblib.load(path)
 
-# SVM và MaxEnt không xử lý chuỗi (sequence) trực tiếp, 
-# ta cần làm phẳng (flatten) dữ liệu và dùng DictVectorizer
+# SVM và MaxEnt không xử lý chuỗi trực tiếp -> làm phẳng
 class FlatModelWrapper:
     def __init__(self, model_type, config):
         self.vectorizer = DictVectorizer(sparse=True)
         if model_type == 'svm':
-            # SGDClassifier với loss='hinge' là Linear SVM
             clf = SGDClassifier(
                 loss=config['loss'], 
                 penalty=config['penalty'],
@@ -43,7 +40,6 @@ class FlatModelWrapper:
                 random_state=config['random_state']
             )
         elif model_type == 'maxent':
-            # Logistic Regression chính là MaxEnt
             clf = LogisticRegression(
                 solver=config['solver'],
                 multi_class=config['multi_class'],
@@ -55,21 +51,17 @@ class FlatModelWrapper:
         self.model = make_pipeline(self.vectorizer, clf)
 
     def _flatten(self, X):
-        """Làm phẳng list of lists thành list đơn"""
         return [item for sublist in X for item in sublist]
 
     def train(self, X_train, y_train):
-        # Flatten dữ liệu: [[feat1, feat2], [feat3]] -> [feat1, feat2, feat3]
         X_flat = self._flatten(X_train)
         y_flat = self._flatten(y_train)
         self.model.fit(X_flat, y_flat)
 
     def predict(self, X_test):
-        # SVM/MaxEnt dự đoán từng token lẻ, cần group lại thành câu sau khi dự đoán
         X_flat = self._flatten(X_test)
         y_pred_flat = self.model.predict(X_flat)
         
-        # Gom lại theo độ dài câu ban đầu để giống output của CRF
         y_pred_grouped = []
         idx = 0
         for sent in X_test:
@@ -77,3 +69,9 @@ class FlatModelWrapper:
             y_pred_grouped.append(y_pred_flat[idx : idx + length].tolist())
             idx += length
         return y_pred_grouped
+    
+    def save(self, path):
+        joblib.dump(self.model, path)
+    
+    def load(self, path):
+        self.model = joblib.load(path)
