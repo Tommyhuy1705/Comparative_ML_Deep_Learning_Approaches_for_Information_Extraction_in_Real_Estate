@@ -2,6 +2,7 @@ import json
 from tqdm import tqdm
 from pyvi import ViTokenizer
 import re
+import itertools
 
 def tokenize_with_pyvi_offsets(text):
     tokenized_text = ViTokenizer.tokenize(text)
@@ -11,22 +12,12 @@ def tokenize_with_pyvi_offsets(text):
     cursor = 0
     
     for token in raw_tokens:
-        # Pyvi nối từ bằng _, ta cần đổi lại thành space để tìm trong text gốc
-        # Lưu ý: Có trường hợp từ gốc có chứa _ nhưng rất hiếm
         search_token = token.replace("_", " ")
-        
-        # Tìm vị trí của từ này trong văn bản gốc bắt đầu từ con trỏ hiện tại
         start = text.find(search_token, cursor)
-        
-        # Nếu không tìm thấy (do Pyvi chuẩn hóa gì đó lạ), ta thử tìm phiên bản không case-sensitive hoặc bỏ qua
         if start == -1:
-            # Fallback: Nếu không tìm thấy chính xác, ta nhảy qua (chấp nhận rủi ro nhỏ)
-            # Nhưng thường Pyvi chỉ thay space bằng _ nên rất an toàn
             continue
             
         end = start + len(search_token)
-        
-        # Lưu token (giữ nguyên dấu _ để làm đặc trưng cho ML) và tọa độ gốc
         tokens_map.append({
             "text": token,
             "start": start,
@@ -80,5 +71,54 @@ def convert_label_studio_to_ner_data(json_data):
         sentence = [(t['text'], labels[i]) for i, t in enumerate(tokens_map)]
         if len(sentence) > 0:
             dataset.append(sentence)
+            
+    return dataset
+
+def prepare_re_data_from_json(json_data):
+    dataset = []
+    for task in json_data:
+        text = task['data']['text']
+        entities = {}
+        relations = []
+        if not task['annotations']:
+            continue
+            
+        # Duyệt qua từng kết quả trong annotation
+        for item in task['annotations'][0]['result']:
+            # Lấy Entities
+            if item['type'] == 'labels':
+                entities[item['id']] = {
+                    'id': item['id'],
+                    'text': item['value']['text'],
+                    'start': item['value']['start'],
+                    'end': item['value']['end'],
+                    'label': item['value']['labels'][0]
+                }
+            elif item['type'] == 'relation':
+                if 'labels' not in item or not item['labels']:
+                    continue
+                relations.append({
+                    'from': item['from_id'],
+                    'to': item['to_id'],
+                    'label': item['labels'][0]
+                })
+
+        true_relation_map = {}
+        for rel in relations:
+            true_relation_map[(rel['from'], rel['to'])] = rel['label']
+            
+        entity_ids = list(entities.keys())
+        for id1, id2 in itertools.permutations(entity_ids, 2):
+            e1 = entities[id1]
+            e2 = entities[id2]
+
+            label = true_relation_map.get((id1, id2), 'NO_RELATION')
+            
+            dataset.append({
+                'text': text,
+                'ent1': e1,
+                'ent2': e2,
+                'label': label
+            })
             
     return dataset

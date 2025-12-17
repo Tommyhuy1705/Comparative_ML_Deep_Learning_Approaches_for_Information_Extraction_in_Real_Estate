@@ -1,4 +1,5 @@
 import re
+import numpy as np
 
 PROVINCES = {
     # Miền Bắc
@@ -15,9 +16,10 @@ PROVINCES = {
     'kiên_giang', 'sóc_trăng', 'bạc_liêu', 'cà_mau', 'cần_thơ'
 }
 
-DISTRICTS_KEYWORDS = {
-    'quận', 'huyện', 'thị_xã', 'thành_phố', 'tp', 'phường', 'xã', 'thôn', 'ấp', 'khu_phố', 'tổ'
-}
+DISTRICTS = [
+    'quận 1', 'quận 3', 'quận 4', 'quận 5', 'quận 10', 'bình thạnh', 
+    'phú nhuận', 'tân bình', 'thủ đức', 'gò vấp', 'hoàn kiếm', 'đống đa'
+]
 
 REAL_ESTATE_KEYWORDS = {
     'sổ_hồng', 'sổ_đỏ', 'pháp_lý', 'thổ_cư', 'chính_chủ', 'mặt_tiền', 'nở_hậu', 'lô_góc', 'view_biển',
@@ -29,7 +31,7 @@ def get_regex_features(word):
     
     features = {
         'is_province_name': word_lower in PROVINCES,
-        'is_district_name': word_lower in DISTRICTS,
+        'is_district': word_lower in DISTRICTS,
         'is_real_estate_term': word_lower in REAL_ESTATE_KEYWORDS,
 
         'is_numeric': bool(re.match(r'^\d+([.,]\d+)?$', word)),
@@ -136,3 +138,43 @@ def sent2labels(sent):
 def sent2tokens(sent):
     """Lấy từ từ list of tuples [(word, label), ...]"""
     return [token[0] for token in sent]
+
+
+def get_relation_features(text, ent1, ent2):
+    features = {}
+    
+    # 1. Đặc trưng cơ bản về Loại thực thể
+    features[f"e1_type={ent1['label']}"] = 1
+    features[f"e2_type={ent2['label']}"] = 1
+    features[f"type_pair={ent1['label']}_{ent2['label']}"] = 1 
+    
+    # 2. Khoảng cách
+    start1, end1 = ent1['start'], ent1['end']
+    start2, end2 = ent2['start'], ent2['end']
+    
+    # Tính khoảng cách giữa 2 vùng
+    if end1 < start2:
+        dist = start2 - end1
+        text_between = text[end1:start2]
+    elif end2 < start1:
+        dist = start1 - end2
+        text_between = text[end2:start1]
+    else:
+        dist = 0
+        text_between = ""
+        
+    features["dist_linear"] = dist
+    features["is_adjacent"] = 1 if dist < 2 else 0 # Gần nhau (< 2 ký tự)
+    
+    # 3. Ngữ cảnh
+    text_between_lower = text_between.lower()
+    keywords = ['tại', 'ở', 'gần', 'thuộc', 'giá', 'bán', 'có', 'mặt_tiền', 'hẻm', 'khoảng']
+    
+    for kw in keywords:
+        if kw in text_between_lower:
+            features[f"has_between_{kw}"] = 1
+            
+    # 4. Thứ tự
+    features["e1_before_e2"] = 1 if start1 < start2 else 0
+
+    return features
