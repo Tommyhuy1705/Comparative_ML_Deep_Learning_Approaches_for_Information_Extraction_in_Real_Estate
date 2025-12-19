@@ -1,5 +1,6 @@
 import sklearn_crfsuite
 from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import make_pipeline
 from sklearn.base import BaseEstimator, TransformerMixin
@@ -69,6 +70,55 @@ class FlatModelWrapper:
             y_pred_grouped.append(y_pred_flat[idx : idx + length].tolist())
             idx += length
         return y_pred_grouped
+    
+    def save(self, path):
+        joblib.dump(self.model, path)
+    
+    def load(self, path):
+        self.model = joblib.load(path)
+
+class RelationExtractionModel:
+    def __init__(self, model_type, config):
+        self.vectorizer = DictVectorizer(sparse=True)
+        
+        if model_type == 'svm':
+            # SVM dùng SGDClassifier (Linear SVM)
+            clf = SGDClassifier(
+                loss=config.get('loss', 'hinge'), 
+                penalty=config.get('penalty', 'l2'),
+                alpha=config.get('alpha', 1e-4),
+                max_iter=config.get('max_iter', 1000),
+                random_state=config.get('random_state', 42)
+            )
+        elif model_type == 'maxent':
+            # MaxEnt chính là Logistic Regression
+            clf = LogisticRegression(
+                solver=config.get('solver', 'lbfgs'),
+                multi_class=config.get('multi_class', 'auto'),
+                max_iter=config.get('max_iter', 1000),
+                C=config.get('C', 1.0),
+                random_state=config.get('random_state', 42)
+            )
+        elif model_type == 'random_forest':
+            clf = RandomForestClassifier(
+                n_estimators=config.get('n_estimators', 100),
+                criterion=config.get('criterion', 'gini'),
+                max_depth=config.get('max_depth', None),
+                min_samples_split=config.get('min_samples_split', 2),
+                n_jobs=config.get('n_jobs', -1),
+                random_state=config.get('random_state', 42)
+            )
+        else:
+            raise ValueError(f"Unknown model type: {model_type}")
+        
+        # Pipeline: Dictionary Features -> Vector -> Classifier
+        self.model = make_pipeline(self.vectorizer, clf)
+
+    def train(self, X_train, y_train):
+        self.model.fit(X_train, y_train)
+
+    def predict(self, X_test):
+        return self.model.predict(X_test)
     
     def save(self, path):
         joblib.dump(self.model, path)
