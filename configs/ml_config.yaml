@@ -19,9 +19,17 @@ maxent:
   C: 10.0
   random_state: 42
 
-logistic_l1:
-  solver: "liblinear" # liblinear hỗ trợ L1 tốt nhất
-  penalty: "l1"
-  max_iter: 2000
-  C: 1.0
+# logistic_l1:
+#   solver: "liblinear" # liblinear hỗ trợ L1 tốt nhất
+#   penalty: "l1"
+#   max_iter: 2000
+#   C: 1.0
+#   random_state: 42
+
+random_forest:
+  n_estimators: 100       # Số lượng cây
+  criterion: "gini"       # Tiêu chuẩn tách node
+  max_depth: 20           # Độ sâu tối đa (để tránh overfit)
+  min_samples_split: 5    # Số mẫu tối thiểu để tách node
+  n_jobs: -1              # Dùng tất cả CPU core để chạy nhanh
   random_state: 42
