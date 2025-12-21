@@ -55,3 +55,10 @@ outputs/predictions/
 # Environment
 .env
 .env.local
+
+# Bỏ qua tất cả file numpy
+*.npy
+
+# Bỏ qua thư mục chứa vector
+data/vectors/
+phobert_vectors_data/
