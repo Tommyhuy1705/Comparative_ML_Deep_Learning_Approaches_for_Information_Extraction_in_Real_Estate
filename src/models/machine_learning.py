@@ -31,7 +31,7 @@ class CRFModel:
 # SVM và MaxEnt không xử lý chuỗi trực tiếp -> làm phẳng
 class FlatModelWrapper:
     def __init__(self, model_type, config):
-        self.vectorizer = DictVectorizer(sparse=True)
+        self.vectorizer_type = config.get('vectorizer', 'dict')
         if model_type == 'svm':
             clf = SGDClassifier(
                 loss=config['loss'], 
@@ -49,7 +49,11 @@ class FlatModelWrapper:
                 random_state=config['random_state']
             )
         
-        self.model = make_pipeline(self.vectorizer, clf)
+        if self.vectorizer_type == 'phobert':
+            self.model = clf
+        else:
+            self.vectorizer = DictVectorizer(sparse=True)
+            self.model = make_pipeline(self.vectorizer, clf)
 
     def _flatten(self, X):
         return [item for sublist in X for item in sublist]
@@ -79,7 +83,7 @@ class FlatModelWrapper:
 
 class RelationExtractionModel:
     def __init__(self, model_type, config):
-        self.vectorizer = DictVectorizer(sparse=True)
+        self.vectorizer_type = config.get('vectorizer', 'dict')
         
         if model_type == 'svm':
             # SVM dùng SGDClassifier (Linear SVM)
@@ -111,8 +115,12 @@ class RelationExtractionModel:
         else:
             raise ValueError(f"Unknown model type: {model_type}")
         
-        # Pipeline: Dictionary Features -> Vector -> Classifier
-        self.model = make_pipeline(self.vectorizer, clf)
+        if self.vectorizer_type == 'phobert':
+            print(f"Model {model_type.upper()}: Using Pre-computed PhoBERT Vectors")
+            self.model = clf
+        else:
+            self.vectorizer = DictVectorizer(sparse=True)
+            self.model = make_pipeline(self.vectorizer, clf)
 
     def train(self, X_train, y_train):
         self.model.fit(X_train, y_train)
