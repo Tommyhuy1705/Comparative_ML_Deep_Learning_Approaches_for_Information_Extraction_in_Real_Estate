@@ -1,8 +1,10 @@
 import sklearn_crfsuite
 from sklearn.linear_model import SGDClassifier, LogisticRegression
+from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.feature_extraction import DictVectorizer
 from sklearn.pipeline import make_pipeline
+from sklearn.preprocessing import StandardScaler
 from sklearn.base import BaseEstimator, TransformerMixin
 import joblib
 
@@ -84,24 +86,31 @@ class FlatModelWrapper:
 class RelationExtractionModel:
     def __init__(self, model_type, config):
         self.vectorizer_type = config.get('vectorizer', 'dict')
-        
+        class_weight = config.get('class_weight', None)
         if model_type == 'svm':
-            # SVM dùng SGDClassifier (Linear SVM)
-            clf = SGDClassifier(
-                loss=config.get('loss', 'hinge'), 
-                penalty=config.get('penalty', 'l2'),
-                alpha=config.get('alpha', 1e-4),
-                max_iter=config.get('max_iter', 1000),
-                random_state=config.get('random_state', 42)
-            )
+            if self.vectorizer_type == 'phobert':
+                clf = SVC(
+                    kernel='rbf', 
+                    C=config.get('C', 10.0),
+                    probability=True,
+                    class_weight=class_weight,
+                    random_state=config.get('random_state', 42)
+                )
+            else:
+                clf = SGDClassifier(
+                    loss=config.get('loss', 'hinge'),
+                    alpha=config.get('alpha', 1e-4),
+                    class_weight=class_weight,
+                    random_state=config.get('random_state', 42)
+                )
         elif model_type == 'maxent':
-            # MaxEnt chính là Logistic Regression
             clf = LogisticRegression(
                 solver=config.get('solver', 'lbfgs'),
                 multi_class=config.get('multi_class', 'auto'),
                 max_iter=config.get('max_iter', 1000),
                 C=config.get('C', 1.0),
-                random_state=config.get('random_state', 42)
+                random_state=config.get('random_state', 42),
+                class_weight=class_weight
             )
         elif model_type == 'random_forest':
             clf = RandomForestClassifier(
@@ -110,14 +119,18 @@ class RelationExtractionModel:
                 max_depth=config.get('max_depth', None),
                 min_samples_split=config.get('min_samples_split', 2),
                 n_jobs=config.get('n_jobs', -1),
-                random_state=config.get('random_state', 42)
+                random_state=config.get('random_state', 42),
+                class_weight=class_weight
             )
         else:
             raise ValueError(f"Unknown model type: {model_type}")
         
         if self.vectorizer_type == 'phobert':
-            print(f"Model {model_type.upper()}: Using Pre-computed PhoBERT Vectors")
-            self.model = clf
+            print(f"RE Model {model_type.upper()}: Using PhoBERT Vectors (Weighted)")
+            if model_type == 'svm' or model_type == 'maxent':
+                self.model = make_pipeline(StandardScaler(), clf)
+            else:
+                self.model = clf
         else:
             self.vectorizer = DictVectorizer(sparse=True)
             self.model = make_pipeline(self.vectorizer, clf)
