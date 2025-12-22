@@ -1,8 +1,11 @@
 import json
-from tqdm import tqdm
-from pyvi import ViTokenizer
 import re
 import itertools
+import torch
+
+from tqdm import tqdm
+from pyvi import ViTokenizer
+from torch.utils.data import Dataset
 
 def tokenize_with_pyvi_offsets(text):
     tokenized_text = ViTokenizer.tokenize(text)
@@ -38,7 +41,7 @@ def convert_label_studio_to_ner_data(json_data):
         else:
             continue
 
-        # --- SỬ DỤNG PYVI TOKENIZER ---
+        # PYVI TOKENIZER
         tokens_map = tokenize_with_pyvi_offsets(raw_text)
         
         # Khởi tạo nhãn O
@@ -54,20 +57,15 @@ def convert_label_studio_to_ner_data(json_data):
                     end_char = item['value']['end']
 
                     for i, token in enumerate(tokens_map):
-                        # Logic giao thoa: Token nằm trong hoặc giao với vùng nhãn
-                        # Pyvi gom từ (VD: "Hồ_Chí_Minh"), nếu nhãn chỉ gán cho "Hồ Chí" thì ta vẫn gán cả cụm là LOC
                         if token['start'] >= start_char and token['end'] <= end_char:
                             if token['start'] == start_char or (i > 0 and labels[i-1] == "O"):
                                 labels[i] = f"B-{label_name}"
                             else:
                                 labels[i] = f"I-{label_name}"
-                        # Xử lý trường hợp Pyvi gom từ dài hơn nhãn (Overlap một phần)
-                        # VD: Nhãn gán "Quận", Pyvi tách "Quận_7". Ta gán cả "Quận_7" là B-LOC
                         elif token['start'] < end_char and token['end'] > start_char:
-                             if labels[i] == "O": # Ưu tiên gán nếu chưa có nhãn
+                             if labels[i] == "O":
                                 labels[i] = f"B-{label_name}"
         
-        # Tạo câu
         sentence = [(t['text'], labels[i]) for i, t in enumerate(tokens_map)]
         if len(sentence) > 0:
             dataset.append(sentence)
@@ -83,7 +81,6 @@ def prepare_re_data_from_json(json_data):
         if not task['annotations']:
             continue
             
-        # Duyệt qua từng kết quả trong annotation
         for item in task['annotations'][0]['result']:
             # Lấy Entities
             if item['type'] == 'labels':
@@ -122,3 +119,76 @@ def prepare_re_data_from_json(json_data):
             })
             
     return dataset
+
+class NERDataset(Dataset):
+    def __init__(self, data, tokenizer, label2id, max_len=256):
+        self.data = data
+        self.tokenizer = tokenizer
+        self.label2id = label2id
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        text_list, label_list = self.data[index]
+        
+        tokenized_inputs = self.tokenizer(
+            text_list,
+            is_split_into_words=True,
+            add_special_tokens=True,
+            max_length=self.max_len,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+        
+        word_ids = tokenized_inputs.word_ids()
+        label_ids = []
+        prev_word_idx = None
+        
+        for word_idx in word_ids:
+            if word_idx is None:
+                label_ids.append(-100)
+            elif word_idx != prev_word_idx:
+                label_str = label_list[word_idx]
+                label_ids.append(self.label2id.get(label_str, -100))
+            else:
+                label_ids.append(-100) 
+            prev_word_idx = word_idx
+
+        return {
+            'input_ids': tokenized_inputs['input_ids'].squeeze(),
+            'attention_mask': tokenized_inputs['attention_mask'].squeeze(),
+            'labels': torch.tensor(label_ids, dtype=torch.long)
+        }
+
+class REDataset(Dataset):
+    def __init__(self, data_pairs, tokenizer, label2id, max_len=256):
+        self.data = data_pairs
+        self.tokenizer = tokenizer
+        self.label2id = label2id
+        self.max_len = max_len
+
+    def __len__(self):
+        return len(self.data)
+
+    def __getitem__(self, index):
+        item = self.data[index]
+        
+        text = item.get('text', '')
+        label_str = item.get('label', 'NO_RELATION')
+        
+        encoding = self.tokenizer(
+            text,
+            max_length=self.max_len,
+            padding='max_length',
+            truncation=True,
+            return_tensors='pt'
+        )
+
+        return {
+            'input_ids': encoding['input_ids'].squeeze(),
+            'attention_mask': encoding['attention_mask'].squeeze(),
+            'labels': torch.tensor(self.label2id.get(label_str, 0), dtype=torch.long)
+        }

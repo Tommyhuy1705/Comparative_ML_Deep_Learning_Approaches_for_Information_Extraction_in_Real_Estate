@@ -1,59 +1,16 @@
-# Model Architecture
-model:
-  model_name: 'phoBERT'  # phoBERT, mBERT, XLM-R
-  pretrained_checkpoint: 'vinai/phobert-base'
-  
-  # Architecture parameters
-  max_sequence_length: 512
-  num_labels: 10  # Number of entity/label classes
-  dropout_rate: 0.1
-  hidden_dropout_prob: 0.1
-  attention_probs_dropout_prob: 0.1
+model_name: "vinai/phobert-base-v2"
+device: "cuda" # hoặc "cpu"
 
-# Optimization
-optimizer:
-  type: 'adamw'  # adamw, adam, sgd
+ner:
+  max_len: 256
+  batch_size: 16
+  epochs: 10
   learning_rate: 2.0e-5
-  weight_decay: 0.01
-  warmup_steps: 500
-  warmup_proportion: 0.1
-
-# Training
-training:
-  num_epochs: 10
-  batch_size: 32
-  gradient_accumulation_steps: 1
-  max_grad_norm: 1.0
+  num_labels: 0
   
-  # Data split
-  train_test_split: 0.8
-  validation_split: 0.1
-  random_seed: 42
-  
-  # Checkpointing
-  save_steps: 500
-  eval_steps: 500
-  logging_steps: 100
-  patience: 3  # Early stopping patience
-
-# Data Processing
-preprocessing:
-  tokenizer: 'phoBERT'
-  add_prefix_space: true
-  truncation: true
-  padding: true
-  
-  # Augmentation
-  use_data_augmentation: false
-  augmentation_types: ['synonym_replacement', 'random_insertion']
-
-# Evaluation
-evaluation:
-  metrics: ['precision', 'recall', 'f1', 'accuracy', 'seqeval']
-  report_digits: 4
-  compute_on_eval: true
-
-# Hardware
-device: 'cuda'  # cuda, cpu
-num_workers: 4
-pin_memory: true
+re:
+  max_len: 256
+  batch_size: 16
+  epochs: 10
+  learning_rate: 2.0e-5
+  num_labels: 0
