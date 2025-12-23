@@ -53,10 +53,6 @@ vn-real-estate-ie/          <-- Root Directory
 │   ├── 03_Exp_Deep_Learning.ipynb       <-- Train Loop cho PhoBERT/BiLSTM (Loss chart)
 │   └── 04_Benchmark_Comparison.ipynb    <-- Load model saved -> Chạy trên Test set -> Vẽ biểu đồ so sánh ML vs DL -> Error Analysis
 │
-├── ui/                     <-- USER INTERFACE (Web App Demo)
-│   ├── app.py              <-- Streamlit/Gradio App (Main UI logic)
-│   └── components.py       <-- Các hàm render kết quả (Highlight Entity màu sắc)
-│
 ├── outputs/                <-- Artifacts
 │   ├── checkpoints/        <-- Model weights (.pth, .pkl)
 │   ├── logs/               <-- Training logs
@@ -77,6 +73,10 @@ vn-real-estate-ie/          <-- Root Directory
     │   ├── __init__.py
     │   ├── conventional.py <-- Wrapper class cho ML models
     │   └── deep_learning.py <-- Custom Module (PhoBERT + Linear/CRF head)
+    │
+    ├── ui/                     <-- USER INTERFACE (Web App Demo)
+    │   ├── app.py              <-- Streamlit/Gradio App (Main UI logic)
+    │   └── components.py       <-- Các hàm render kết quả (Highlight Entity màu sắc)
     │
     └── utils/
         ├── metrics.py      <-- Hàm tính Span-level F1 (dùng seqeval)
