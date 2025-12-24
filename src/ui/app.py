@@ -19,7 +19,7 @@ sys.path.append(str(project_root / "src"))
 try:
     from data_loader.preprocess import clean_and_format_content
     from data_loader.dataset import tokenize_with_pyvi_offsets
-    from components import run_ner, run_re, run_ie
+    from ui.components import run_ner, run_re, run_ie
 except ImportError as e:
     st.error(f"Lỗi import module: {e}. Hãy đảm bảo cấu trúc thư mục 'src' đúng như trong repo.")
     st.stop()
@@ -71,7 +71,7 @@ with st.sidebar:
         if model_type == "Machine Learning":
                 model_ML = st.radio(
                 "Chọn loại mô hình ML cho RE:",
-                ["PCA", "MaxEnt", "SVM", "Scaler", "RandomForest"]
+                ["RandomForest", "MaxEnt", "SVM"]
             )
         else:
             model_DL = st.radio(
@@ -118,6 +118,7 @@ if st.button("Thực hiện Trích xuất", type="primary"):
                 model_name = None # DL
 
             entities = run_ner(
+                tokens_map=tokens_map,
                 tokens=tokens,
                 cleaned_text=cleaned_text,
                 model_type=model_type,
@@ -146,6 +147,7 @@ if st.button("Thực hiện Trích xuất", type="primary"):
                 model_name = "MaxEnt") # Tự động chọn ML cho task NER
 
             relations = run_re(
+                cleaned_text=cleaned_text,
                 entities=entities,
                 model_type=model_type,
                 model_name=model_name
